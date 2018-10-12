@@ -4,7 +4,7 @@
   "description": "Telegram bot to see gifs from thecodinglove.com",
   "main": "theCodinglove_bot.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node bot.js"
   },
   "author": "@bergpb",
   "license": "ISC",
