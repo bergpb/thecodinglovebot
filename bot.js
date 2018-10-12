@@ -44,7 +44,7 @@ const BUTTONS = {
 });*/
 
 const bot = new TeleBot({
-    token: '510299277:AAHYUyYHt3hkDnqFoMH9RM82Fwm1liipdB0',
+    token: 'your-token-here',
     usePlugins: ['namedButtons'],
     pluginConfig: {
         namedButtons: {
