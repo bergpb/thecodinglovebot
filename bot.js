@@ -4,8 +4,12 @@ const TeleBot = require('telebot');
 const cheerio = require('cheerio');
 const request = require('request');
 const winston = require('winston');
+const ConfigParser = require('configparser');
 //const mytoken = process.env.TELEGRAM_TOKEN;
 //const myport = process.env.PORT;
+
+const config = new ConfigParser();
+config.read('config.cfg');
 
 let page = 1;
 const timestamp = () => (new Date()).toLocaleTimeString();
@@ -44,7 +48,7 @@ const BUTTONS = {
 });*/
 
 const bot = new TeleBot({
-    token: 'your-token-here',
+    token: config.get('bot', 'token'),
     usePlugins: ['namedButtons'],
     pluginConfig: {
         namedButtons: {
@@ -186,7 +190,7 @@ function getRandompost(msg, replyMarkup){
   });
 }
 
-bot.on('/start', (msg) =>{
+bot.on('/start', (msg) => {
   page = 1;
   getInfo(msg);
   replyMarkup = bot.keyboard([
@@ -196,7 +200,7 @@ bot.on('/start', (msg) =>{
   getData(msg, replyMarkup, page);
 });
 
-bot.on('/previous', (msg) =>{
+bot.on('/previous', (msg) => {
   getInfo(msg);
   if (page === 1){
     replyMarkup = bot.keyboard([
@@ -211,7 +215,7 @@ bot.on('/previous', (msg) =>{
   }
 });
 
-bot.on('/next', (msg) =>{
+bot.on('/next', (msg) => {
   getInfo(msg);
   page = page + 1;
   bot.sendMessage(msg.chat.id, `Page: ${page}`);
@@ -223,7 +227,7 @@ bot.on('/next', (msg) =>{
   getData(msg, replyMarkup, page);
 });
 
-bot.on('/back_to_first', (msg) =>{
+bot.on('/back_to_first', (msg) => {
   page = 1;
     replyMarkup = bot.keyboard([
       [BUTTONS.next.label],
