@@ -72,9 +72,16 @@ const logger = new (winston.Logger)({
       level: 'info'
     }),
     new (winston.transports.File)({
-      filename: 'logger.log',
+      name: 'info-file',
+      filename: 'logger-info.log',
       timestamp,
       level: 'info'
+    }),
+    new (winston.transports.File)({
+      name: 'error-file',
+      filename: 'logger-error.log',
+      timestamp,
+      level: 'error'
     })
   ]
 });
@@ -103,27 +110,27 @@ function getData(msg, replyMarkup, page){
     if(!error){
        let $ = cheerio.load(body);
 
-        let allTitles = $('.blog-post').find('.blog-post-title')
-        let allImages = $('.blog-post').find('.blog-post-content')
+        let allTitles = $('.blog-post').find('.blog-post-title');
+        let allImages = $('.blog-post').find('.blog-post-content');
 
         allTitles.each(function (index, element){
             let title = $(element).find('a').text();
             titles.push(title);
-        })
+        });
 
         allImages.each(function (index, element){
             let image = $(element).find('p').find('img').attr("src");
             images.push(image);
-        })
+        });
       
       for (let i=0; i<=3; i++){
-        let extension = images[i].split('.').pop()
+        let extension = images[i].split('.').pop();
         if (extension === 'gif' || extension === 'gif?1'){
-          bot.sendAction(msg.chat.id, 'typing');
+          bot.sendChatAction(msg.chat.id, 'typing');
           bot.sendDocument(msg.chat.id, images[i],{caption: titles[i]+'\n', replyMarkup})
               .catch(err => {
-                bot.sendMessage(msg.chat.id, `Fail to send image.`)
-                logger.info(err);
+                bot.sendMessage(msg.chat.id, `Fail to send image.`);
+                logger.error(err);
             });
         }
 
@@ -131,13 +138,13 @@ function getData(msg, replyMarkup, page){
             bot.sendPhoto(msg.chat.id, images[i],{caption: titles[i]+'\n', replyMarkup})
               .catch(err => {
                 bot.sendMessage(msg.chat.id, `Fail to send image.`);
-                logger.info(err);
+                logger.error(err);
             });
           }
         }
       }
     else{
-      logger.info(error);
+      logger.error(error);
     }
   });
 }
@@ -146,46 +153,37 @@ function getRandompost(msg, replyMarkup){
   
   var urlRandom;
   let url = 'http://thecodinglove.com/page/1';
-  
   // this can help here
   //https://www.davidbcalhoun.com/2009/passing-data-to-functions-in-javascript/
-  
   request(url, function (error, response, body) {
     let $ = cheerio.load(body);
     urlRandom = $('.nav-item').find('a.nav-link').attr("href");
   });
   
-  console.log("url: "+urlRandom);
-
   request(urlRandom, function (error, response, body) {
-    
-    console.log(urlRandom);
-    
     if(!error){
-       let $ = cheerio.load(body);
-
-        let title = $('.blog-post').find('.blog-post-title').find('a').text();
-        let image = $('.blog-post').find('.blog-post-content').find('p').find('img').attr("src");
+      let $ = cheerio.load(body);
+      let title = $('.blog-post').find('.blog-post-title').find('a').text();
+      let image = $('.blog-post').find('.blog-post-content').find('p').find('img').attr("src");
       
-        if (image.endswith === 'gif' || image.endswith === 'gif?1'){
-          bot.sendDocument(msg.chat.id, image,{caption: title+'\n', replyMarkup})
-          bot.sendGif(msg.chat.id, image,{caption: title+'\n', replyMarkup})
-              .catch(err => {
-                bot.sendMessage(msg.chat.id, `Fail to send image.`);
-                logger.info(err);
-            });
+      if (image.endswith === 'gif' || image.endswith === 'gif?1'){
+        bot.sendDocument(msg.chat.id, image,{caption: title+'\n', replyMarkup});
+        bot.sendGif(msg.chat.id, image,{caption: title+'\n', replyMarkup})
+            .catch(err => {
+              bot.sendMessage(msg.chat.id, `Fail to send image.`);
+              logger.error(err);
+          });
+      }
+      else {
+          bot.sendPhoto(msg.chat.id, image,{caption: title+'\n', replyMarkup})
+            .catch(err => {
+              bot.sendMessage(msg.chat.id, `Fail to send image.`);
+              logger.error(err);
+          });
         }
-
-        else {
-            bot.sendPhoto(msg.chat.id, image,{caption: title+'\n', replyMarkup})
-              .catch(err => {
-                bot.sendMessage(msg.chat.id, `Fail to send image.`);
-                logger.info(err);
-            });
-          }
-        }
+      }
     else{
-      console.log(error);
+      logger.error(error);
     }
   });
 }
@@ -194,9 +192,9 @@ bot.on('/start', (msg) => {
   page = 1;
   getInfo(msg);
   replyMarkup = bot.keyboard([
-      [BUTTONS.next.label],
-      [BUTTONS.back_to_first.label, BUTTONS.info.label],
-    ], {resize: true});
+    [BUTTONS.next.label],
+    [BUTTONS.back_to_first.label, BUTTONS.info.label],
+  ], {resize: true});
   getData(msg, replyMarkup, page);
 });
 
@@ -220,19 +218,19 @@ bot.on('/next', (msg) => {
   page = page + 1;
   bot.sendMessage(msg.chat.id, `Page: ${page}`);
   replyMarkup = bot.keyboard([
-        //[BUTTONS.random.label],
-        [BUTTONS.previous.label, BUTTONS.next.label],
-        [BUTTONS.back_to_first.label, BUTTONS.info.label],
-    ], {resize: true});
+    //[BUTTONS.random.label],
+    [BUTTONS.previous.label, BUTTONS.next.label],
+    [BUTTONS.back_to_first.label, BUTTONS.info.label],
+  ], {resize: true});
   getData(msg, replyMarkup, page);
 });
 
 bot.on('/back_to_first', (msg) => {
   page = 1;
-    replyMarkup = bot.keyboard([
-      [BUTTONS.next.label],
-      [BUTTONS.back_to_first.label, BUTTONS.info.label],
-    ], {resize: true});
+  replyMarkup = bot.keyboard([
+    [BUTTONS.next.label],
+    [BUTTONS.back_to_first.label, BUTTONS.info.label],
+  ], {resize: true});
   getInfo(msg);
   getData(msg, replyMarkup, page);
   bot.sendMessage(msg.chat.id, 'You\'re on the first page.', {replyMarkup});
@@ -241,6 +239,36 @@ bot.on('/back_to_first', (msg) => {
 bot.on('/info', (msg) => {
   getInfo(msg);
   bot.sendMessage(msg.chat.id, 'This bot get images and description from thecodinglove.com and send to you, please use commands of the keyboard.\nBot made by @bergpb.');
+});
+
+//inlineButton
+bot.on('/inlineButton', msg => {
+    let replyMarkup = bot.inlineKeyboard([
+        [
+            bot.inlineButton('callback', {callback: 'this_is_data'}),
+            bot.inlineButton('inline', {inline: 'some query'})
+        ], [
+            bot.inlineButton('url', {url: 'https://telegram.org'})
+        ]
+    ]);
+    return bot.sendMessage(msg.from.id, 'Inline keyboard example.', {replyMarkup});
+});
+
+// inlineQuery
+bot.on('/inlineQuery', msg => {
+
+    const query = msg.query;
+    const answers = bot.answerList(msg.id);
+
+    answers.addArticle({
+        id: 'query',
+        title: 'Inline Query',
+        description: `Your query: ${ query }`,
+        message_text: 'Click!'
+    });
+
+    return bot.answerQuery(answers);
+
 });
 
 //bot.on('/random_post', (msg) => {
