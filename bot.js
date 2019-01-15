@@ -65,7 +65,7 @@ const bot = new TeleBot({
     //}
 });
 
-const logger = new (winston.createLogger)({
+let logger = winston.createLogger({
   transports: [
     new (winston.transports.Console)({
       timestamp,
