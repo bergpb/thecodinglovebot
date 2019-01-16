@@ -11,30 +11,14 @@ let page = 1;
 const timestamp = () => (new Date()).toLocaleTimeString();
 
 const BUTTONS = {
-    previous: {
-        label: '⏪ Previous',
-        command: '/previous'
-    },
-    next: {
-        label: 'Next ⏩',
-        command: '/next'
-    },
-    //random: {
-    //    label: '🔀 Random Post',
-    //    command: '/random_post'
-    //},
-    info: {
-        label: 'Info',
-        command: '/info'
-    },
-    back_to_first: {
-        label: 'Back to First Page',
-        command: '/back_to_first'
-    }
+    previous: { label: '⏪ Previous', command: '/previous' },
+    next: { label: 'Next ⏩', command: '/next' },
+    info: { label: 'Info', command: '/info' },
+    back_to_first: { label: 'Back to First Page', command: '/back_to_first' }
 };
 
 const bot = new TeleBot({
-    token: config.get('bot', 'token'),
+    token: config.get(process.env.NODE_ENV, 'token'),
     usePlugins: ['namedButtons'],
     pluginConfig: {
         namedButtons: {
@@ -43,7 +27,7 @@ const bot = new TeleBot({
     }
 });
 
-let logger = winston.createLogger({
+const logger = winston.createLogger({
   transports: [
     new (winston.transports.Console)({
       timestamp,
@@ -65,7 +49,6 @@ let logger = winston.createLogger({
 });
     
 let replyMarkup = bot.keyboard([
-        //[BUTTONS.random.label],
         [BUTTONS.previous.label, BUTTONS.next.label],
         [BUTTONS.back_to_first.label, BUTTONS.info.label],
     ], {resize: true});
@@ -87,7 +70,7 @@ function getData(msg, replyMarkup, page){
        let $ = cheerio.load(body);
 
         let allTitles = $('.blog-post').find('.blog-post-title');
-        let allImages = $('.blog-post').find('.blog-post-content');
+        let allImages = $('.blog-post').find('.blog-post-content').find('p');
 
         allTitles.each(function (index, element){
             let title = $(element).find('a').text();
@@ -95,15 +78,31 @@ function getData(msg, replyMarkup, page){
         });
 
         allImages.each(function (index, element){
-            let image = $(element).find('video').find('object').attr("data");
-            images.push(image);
+          if ($(element).find('video').find('object').attr("data") !== undefined){
+            images.push($(element).find('video').find('object').attr("data"));
+          }
+          else if($(element).find('img').attr("src") !== undefined){
+            images.push($(element).find('img').attr("src"));
+          }
+          else{
+            logger.error(err);
+          }
         });
       
       for (let i=0; i<=3; i++){
-        let extension = images[i].split('.').pop();
+        let extension = images[i] !== undefined ? images[i].split('.').pop() : undefined;
         if (extension === 'gif' || extension === 'gif?1'){
           bot.sendChatAction(msg.chat.id, 'typing');
           bot.sendDocument(msg.chat.id, images[i],{caption: titles[i]+'\n', replyMarkup})
+              .catch(err => {
+                bot.sendMessage(msg.chat.id, `Fail to send image.`);
+                logger.error(err);
+            });
+        }
+        
+        else if (extension === 'jpg'){
+          bot.sendChatAction(msg.chat.id, 'typing');
+          bot.sendPhoto(msg.chat.id, images[i],{caption: titles[i]+'\n', replyMarkup})
               .catch(err => {
                 bot.sendMessage(msg.chat.id, `Fail to send image.`);
                 logger.error(err);
@@ -190,9 +189,8 @@ bot.on('/previous', (msg) => {
 bot.on('/next', (msg) => {
   getInfo(msg);
   page = page + 1;
-  bot.sendMessage(msg.chat.id, `Page: ${page}`);
+  bot.sendMessage(msg.chat.id, `Getting information for page: ${page}`);
   replyMarkup = bot.keyboard([
-    //[BUTTONS.random.label],
     [BUTTONS.previous.label, BUTTONS.next.label],
     [BUTTONS.back_to_first.label, BUTTONS.info.label],
   ], {resize: true});
@@ -214,40 +212,5 @@ bot.on('/info', (msg) => {
   getInfo(msg);
   bot.sendMessage(msg.chat.id, 'This bot get images and description from thecodinglove.com and send to you, please use commands of the keyboard.\nBot made by @bergpb.');
 });
-
-//inlineButton
-bot.on('/inlineButton', msg => {
-    let replyMarkup = bot.inlineKeyboard([
-        [
-            bot.inlineButton('callback', {callback: 'this_is_data'}),
-            bot.inlineButton('inline', {inline: 'some query'})
-        ], [
-            bot.inlineButton('url', {url: 'https://telegram.org'})
-        ]
-    ]);
-    return bot.sendMessage(msg.from.id, 'Inline keyboard example.', {replyMarkup});
-});
-
-// inlineQuery
-bot.on('/inlineQuery', msg => {
-    const query = msg.query;
-    const answers = bot.answerList(msg.id);
-    answers.addArticle({
-        id: 'query',
-        title: 'Inline Query',
-        description: `Your query: ${ query }`,
-        message_text: 'Click!'
-    });
-    return bot.answerQuery(answers);
-});
-
-//bot.on('/random_post', (msg) => {
-//  getInfo(msg);
-//    replyMarkup = bot.keyboard([
-//      [BUTTONS.random.label],
-//      [BUTTONS.back_to_first.label, BUTTONS.info.label],
-//    ], {resize: true});
-//  getRandompost(msg, replyMarkup);
-//});
 
 bot.start();

@@ -79,7 +79,6 @@ typings/
 # DynamoDB Local files
 .dynamodb/
 
-#logger files
 logger-error.log
 logger-info.log
 config.cfg
