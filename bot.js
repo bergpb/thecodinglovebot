@@ -1,12 +1,8 @@
-//https://github.com/mullwar/telebot
-
 const TeleBot = require('telebot');
 const cheerio = require('cheerio');
 const request = require('request');
 const winston = require('winston');
 const ConfigParser = require('configparser');
-//const mytoken = process.env.TELEGRAM_TOKEN;
-//const myport = process.env.PORT;
 
 const config = new ConfigParser();
 config.read('config.cfg');
@@ -37,16 +33,6 @@ const BUTTONS = {
     }
 };
 
-/*const bot = new TeleBot({
-    token: mytoken,
-    usePlugins: ['namedButtons'],
-    pluginConfig: {
-        namedButtons: {
-            buttons: BUTTONS
-        }
-    }
-});*/
-
 const bot = new TeleBot({
     token: config.get('bot', 'token'),
     usePlugins: ['namedButtons'],
@@ -54,15 +40,7 @@ const bot = new TeleBot({
         namedButtons: {
             buttons: BUTTONS
         }
-    },
-    //webhook: {
-        // Self-signed certificate:
-        // key: './key.pem',
-        // cert: './cert.pem',
-        //url: 'https://thecodinglovebot.glitch.me/',
-        //host: '0.0.0.0',
-        //port: myport
-    //}
+    }
 });
 
 let logger = winston.createLogger({
@@ -102,8 +80,6 @@ function getData(msg, replyMarkup, page){
   
   request(url, function (error, response, body) {
     
-    let promisse;
-    
     var titles = [];
     var images = [];
     
@@ -119,7 +95,7 @@ function getData(msg, replyMarkup, page){
         });
 
         allImages.each(function (index, element){
-            let image = $(element).find('p').find('img').attr("src");
+            let image = $(element).find('video').find('object').attr("data");
             images.push(image);
         });
       
@@ -153,8 +129,6 @@ function getRandompost(msg, replyMarkup){
   
   var urlRandom;
   let url = 'http://thecodinglove.com/page/1';
-  // this can help here
-  //https://www.davidbcalhoun.com/2009/passing-data-to-functions-in-javascript/
   request(url, function (error, response, body) {
     let $ = cheerio.load(body);
     urlRandom = $('.nav-item').find('a.nav-link').attr("href");
@@ -256,19 +230,15 @@ bot.on('/inlineButton', msg => {
 
 // inlineQuery
 bot.on('/inlineQuery', msg => {
-
     const query = msg.query;
     const answers = bot.answerList(msg.id);
-
     answers.addArticle({
         id: 'query',
         title: 'Inline Query',
         description: `Your query: ${ query }`,
         message_text: 'Click!'
     });
-
     return bot.answerQuery(answers);
-
 });
 
 //bot.on('/random_post', (msg) => {
