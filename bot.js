@@ -2,10 +2,7 @@ const TeleBot = require('telebot');
 const cheerio = require('cheerio');
 const request = require('request');
 const winston = require('winston');
-const ConfigParser = require('configparser');
-
-const config = new ConfigParser();
-config.read('config.cfg');
+const dotenv = require('dotenv').config();
 
 let page = 1;
 const timestamp = () => (new Date()).toLocaleTimeString();
@@ -18,7 +15,7 @@ const BUTTONS = {
 };
 
 const bot = new TeleBot({
-    token: config.get(process.env.NODE_ENV, 'token'),
+    token: process.env.API_KEY_DEV,
     usePlugins: ['namedButtons'],
     pluginConfig: {
         namedButtons: {
