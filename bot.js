@@ -15,7 +15,7 @@ const BUTTONS = {
 };
 
 const bot = new TeleBot({
-    token: process.env.API_KEY_DEV,
+    token: process.env.API_KEY,
     usePlugins: ['namedButtons'],
     pluginConfig: {
         namedButtons: {
@@ -44,7 +44,7 @@ const logger = winston.createLogger({
     })
   ]
 });
-    
+
 let replyMarkup = bot.keyboard([
         [BUTTONS.previous.label, BUTTONS.next.label],
         [BUTTONS.back_to_first.label, BUTTONS.info.label],
@@ -55,19 +55,22 @@ function getInfo(msg){
 }
 
 function getData(msg, replyMarkup, page){
-  
+
   let url = 'http://thecodinglove.com/page/'+page;
-  
+
   request(url, function (error, response, body) {
-    
+
+    let text = '';
     var titles = [];
     var images = [];
-    
+    var links = [];
+
     if(!error){
-       let $ = cheerio.load(body);
+        let $ = cheerio.load(body);
 
         let allTitles = $('.blog-post').find('.blog-post-title');
         let allImages = $('.blog-post').find('.blog-post-content').find('p');
+        let allLinks = $('.social-share').find('.my-link-btn');
 
         allTitles.each(function (index, element){
             let title = $(element).find('a').text();
@@ -75,31 +78,38 @@ function getData(msg, replyMarkup, page){
         });
 
         allImages.each(function (index, element){
-          if ($(element).find('video').find('object').attr("data") !== undefined){
-            images.push($(element).find('video').find('object').attr("data"));
+          if ($(element).find('video').find('object').attr('data') !== undefined){
+            images.push($(element).find('video').find('object').attr('data'));
           }
           else if($(element).find('img').attr("src") !== undefined){
-            images.push($(element).find('img').attr("src"));
+            images.push($(element).find('img').attr('src'));
           }
           else{
             logger.error(err);
           }
         });
-      
+
+        allLinks.each(function (index, element){
+            let link = $(element).attr('data-clipboard-text');
+            links.push(link);
+        });
+
       for (let i=0; i<=3; i++){
         let extension = images[i] !== undefined ? images[i].split('.').pop() : undefined;
         if (extension === 'gif' || extension === 'gif?1'){
+          text = titles[i]+'\n'+links[i]
           bot.sendChatAction(msg.chat.id, 'typing');
-          bot.sendDocument(msg.chat.id, images[i],{caption: titles[i]+'\n', replyMarkup})
+          bot.sendDocument(msg.chat.id, images[i],{caption: text, replyMarkup})
               .catch(err => {
                 bot.sendMessage(msg.chat.id, `Fail to send image.`);
                 logger.error(err);
             });
         }
-        
+
         else if (extension === 'jpg'){
           bot.sendChatAction(msg.chat.id, 'typing');
-          bot.sendPhoto(msg.chat.id, images[i],{caption: titles[i]+'\n', replyMarkup})
+          text = titles[i]+'\n'+links[i]
+          bot.sendPhoto(msg.chat.id, images[i],{caption: text, replyMarkup})
               .catch(err => {
                 bot.sendMessage(msg.chat.id, `Fail to send image.`);
                 logger.error(err);
@@ -122,20 +132,20 @@ function getData(msg, replyMarkup, page){
 }
 
 function getRandompost(msg, replyMarkup){
-  
+
   var urlRandom;
   let url = 'http://thecodinglove.com/page/1';
   request(url, function (error, response, body) {
     let $ = cheerio.load(body);
     urlRandom = $('.nav-item').find('a.nav-link').attr("href");
   });
-  
+
   request(urlRandom, function (error, response, body) {
     if(!error){
       let $ = cheerio.load(body);
       let title = $('.blog-post').find('.blog-post-title').find('a').text();
       let image = $('.blog-post').find('.blog-post-content').find('p').find('img').attr("src");
-      
+
       if (image.endswith === 'gif' || image.endswith === 'gif?1'){
         bot.sendDocument(msg.chat.id, image,{caption: title+'\n', replyMarkup});
         bot.sendGif(msg.chat.id, image,{caption: title+'\n', replyMarkup})
